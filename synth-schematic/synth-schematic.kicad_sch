@@ -2030,6 +2030,18 @@
 		(uuid "01f816db-7924-46cc-9ff5-b38e45904ec2")
 	)
 	(junction
+		(at 151.13 83.82)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "04049411-89da-47d4-85db-96e395579efc")
+	)
+	(junction
+		(at 153.67 83.82)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "4ad9f65b-b226-4c18-a919-c9f7600ec142")
+	)
+	(junction
 		(at 200.66 54.61)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2079,6 +2091,16 @@
 	)
 	(wire
 		(pts
+			(xy 151.13 83.82) (xy 153.67 83.82)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "02f4cfdf-0b2e-4501-94f2-ab89dbe88ad4")
+	)
+	(wire
+		(pts
 			(xy 175.26 63.5) (xy 175.26 68.58)
 		)
 		(stroke
@@ -2086,6 +2108,16 @@
 			(type default)
 		)
 		(uuid "055a4d47-b3ae-41c1-8c85-988884d539ed")
+	)
+	(wire
+		(pts
+			(xy 148.59 83.82) (xy 148.59 82.55)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "057b7801-f676-4b37-ad87-a5b1261a80df")
 	)
 	(wire
 		(pts
@@ -2329,6 +2361,16 @@
 	)
 	(wire
 		(pts
+			(xy 148.59 82.55) (xy 146.05 82.55)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "4f98eb46-9988-43dc-94e3-c608d02d478e")
+	)
+	(wire
+		(pts
 			(xy 172.72 48.26) (xy 175.26 48.26)
 		)
 		(stroke
@@ -2446,6 +2488,16 @@
 			(type default)
 		)
 		(uuid "75636d1e-2e59-4412-915b-cf2ebc0d5f39")
+	)
+	(wire
+		(pts
+			(xy 153.67 83.82) (xy 156.21 83.82)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7723cc03-55c6-4dbe-ba53-545b32e69cef")
 	)
 	(wire
 		(pts
@@ -2679,6 +2731,16 @@
 	)
 	(wire
 		(pts
+			(xy 151.13 83.82) (xy 148.59 83.82)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e4ad2ddb-628c-4919-bf04-2ab96a1e72a3")
+	)
+	(wire
+		(pts
 			(xy 123.19 57.15) (xy 129.54 57.15)
 		)
 		(stroke
@@ -2803,7 +2865,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0201_0603Metric"
 			(at 120.65 44.45 0)
 			(effects
 				(font
@@ -2871,7 +2933,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0201_0603Metric"
 			(at 120.65 58.42 0)
 			(effects
 				(font
@@ -3005,7 +3067,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0201_0603Metric"
 			(at 120.65 86.36 0)
 			(effects
 				(font
@@ -3207,7 +3269,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Button_Switch_SMD:SW_Push_1P1T_NO_CK_PTS125Sx43PSMTR"
 			(at 128.27 80.01 0)
 			(effects
 				(font
@@ -3422,7 +3484,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Potentiometer_THT:Potentiometer_Piher_PT-15-H01_Horizontal"
 			(at 179.07 68.58 0)
 			(effects
 				(font
@@ -3495,7 +3557,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Potentiometer_THT:Potentiometer_Piher_PT-15-H01_Horizontal"
 			(at 179.07 48.26 0)
 			(effects
 				(font
@@ -3568,7 +3630,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Crystal:Crystal_SMD_3225-4Pin_3.2x2.5mm"
 			(at 207.01 109.22 0)
 			(effects
 				(font
@@ -3638,7 +3700,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Button_Switch_SMD:SW_Push_1P1T_NO_CK_PTS125Sx43PSMTR"
 			(at 128.27 66.04 0)
 			(effects
 				(font
@@ -3707,7 +3769,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_Tantalum_SMD:CP_EIA-1608-08_AVX-J"
 			(at 189.23 94.9452 0)
 			(effects
 				(font
@@ -3744,6 +3806,72 @@
 			(project "synth-schematic"
 				(path "/9aa8095e-6209-4c5d-96fa-dbe543a570c8"
 					(reference "C(tantalum)1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 146.05 82.55 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "8803468d-1fef-4298-a13e-b8641a71bd23")
+		(property "Reference" "#PWR03"
+			(at 146.05 88.9 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "GND"
+			(at 146.05 87.63 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 146.05 82.55 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 146.05 82.55 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 146.05 82.55 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "0ddb14c3-ce71-47df-a8c8-ae3aadd71664")
+		)
+		(instances
+			(project ""
+				(path "/9aa8095e-6209-4c5d-96fa-dbe543a570c8"
+					(reference "#PWR03")
 					(unit 1)
 				)
 			)
@@ -4023,7 +4151,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Button_Switch_SMD:SW_Push_1P1T_NO_CK_PTS125Sx43PSMTR"
 			(at 128.27 93.98 0)
 			(effects
 				(font
@@ -4157,7 +4285,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Resistor_SMD:R_0201_0603Metric"
 			(at 120.65 72.39 0)
 			(effects
 				(font
@@ -4194,6 +4322,72 @@
 			(project "synth-schematic"
 				(path "/9aa8095e-6209-4c5d-96fa-dbe543a570c8"
 					(reference "R3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:+5V")
+		(at 158.75 30.48 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "b97b9521-38da-4ef0-bb63-3c3eb633c8a3")
+		(property "Reference" "#PWR02"
+			(at 158.75 34.29 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "+5V"
+			(at 158.75 25.4 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 158.75 30.48 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 158.75 30.48 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+5V\""
+			(at 158.75 30.48 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "7fef5c2e-cef3-43fb-9c26-5613e755aaab")
+		)
+		(instances
+			(project ""
+				(path "/9aa8095e-6209-4c5d-96fa-dbe543a570c8"
+					(reference "#PWR02")
 					(unit 1)
 				)
 			)
@@ -4359,7 +4553,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Button_Switch_SMD:SW_Push_1P1T_NO_CK_PTS125Sx43PSMTR"
 			(at 128.27 52.07 0)
 			(effects
 				(font
@@ -4496,7 +4690,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:C_3640_9110Metric"
 			(at 189.23 81.5848 0)
 			(effects
 				(font
@@ -4566,7 +4760,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Potentiometer_THT:Potentiometer_Piher_PT-15-H01_Horizontal"
 			(at 179.07 58.42 0)
 			(effects
 				(font
@@ -4702,7 +4896,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:CP_Elec_3x5.3"
 			(at 200.66 103.1748 0)
 			(effects
 				(font
@@ -4772,7 +4966,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Potentiometer_THT:Potentiometer_Piher_PT-15-H01_Horizontal"
 			(at 179.07 38.1 0)
 			(effects
 				(font
