@@ -16,21 +16,30 @@
 //For ADSR control
 const int knobPin1 = A0;
 const int buttonPin1 = 5; //swap between ADSR
+int ADSRVal = 0;
+int ADSRnum = 0;
+int ADSRCycle = 0;
 //For filter control
 const int knobPin2 = A1;
 const int buttonPin2 = 4; //swap between filters
 //for Oscillator control
 const int knobPin3 = A2;
 const int buttonPin3 = 3; // this button will be different as it will function as a wave form selector
+int pitchControl = 0;
 //For modulation effects
 const int knobPin4 = A3;
 const int buttonPin4 = 2; //cycle through effects
 
 Oscil <2048, MOZZI_AUDIO_RATE> aSin(SIN2048_DATA);//main oscillator
+Oscil <2048, MOZZI_AUDIO_RATE> aSaw(SAW2048_DATA);//main oscillator
+Oscil <2048, MOZZI_AUDIO_RATE> aTri(TRIANGLE2048_DATA);//main oscillator
+Oscil <2048, MOZZI_AUDIO_RATE> aSqu(SQUARE_NO_ALIAS_2048_DATA);//main oscillator
+Oscil <2048, MOZZI_AUDIO_RATE> *currentWave = &aSin;
+int waveFormCounter = 0;
+
 Oscil <2048, MOZZI_AUDIO_RATE> lfoOsc(SIN2048_DATA);//used for effects, the ones to implement are vibrato, tremolo, ring modulation, and distortion
 
 // adsr
-unsigned int attack, decay, sustain, releaseMs;
 ADSR <MOZZI_AUDIO_RATE, MOZZI_AUDIO_RATE> envelope;//ADSR envelope
 EventDelay noteDelay;
 
@@ -44,22 +53,31 @@ StateVariable<NOTCH> NFilter;
 float baseFreq = 440.0; //base frequency for the oscillator
 float lfoFreq = 440.0; //base frequency for LFO
 
-uint8_t ADSRselection = 0; //0 - Attack, 1 - Decay, 2 - Sustain, 3 - Release, 4 - Reset
+uint8_t ADSRselection = 0; //0 - Attack, 1 - Decay, 2 - Sustain, 3 - Release
 uint8_t filterMode = 0;  // 0 - Low Pass, 1 - High Pass, 2 - State Variable
+
+// button timers
+unsigned long ADSRLastTime = 0;
+unsigned long waveLastTime = 0;
 
 //TODO: ADSR - add a method for a case switch for the buttons and figure out how to code potentiometers
 void adsr() {
     if (noteDelay.ready()) {
         // choose envelope levels
-        byte attack = rand(128)+127;
-        byte decay = rand(255);
+        int attack = 100;
+        int decay = 100;
+        int sustain = 100;
+        int releaseMs = 100;
         envelope.setADLevels(attack, decay);
 
         // generate random new adsr time parameter value in ms
-        unsigned int newValue = rand(300) + 100;
+        unsigned int newValue = (ADSRVal/1024.0)* 1500;
+        Serial.print("New value:");
         Serial.println(newValue);
+        Serial.print("ADSR: ");
+        Serial.println(ADSRCycle);
         // randomly choose one of the adsr parameters and set new value
-        switch (rand(4)) {
+        switch (ADSRCycle) {
             case 0:
             attack = newValue;
             break;
@@ -74,12 +92,54 @@ void adsr() {
             break;
         }
         envelope.setTimes(attack, decay, sustain, releaseMs);
-        envelope.noteOn();
+        envelope.noteOn(false);
 
-        byte midiNote = rand(107) + 20;
-        aSin.setFreq((int)mtof(midiNote)); // TODO: use separate oscilator?
-        nodeDelay.start(attack + decay + sustain + releaseMs);
+        noteDelay.start(attack + decay + sustain + releaseMs);
     }
+}
+
+void pitch(){
+  Serial.println(pitchControl);
+  currentWave->setFreq((pitchControl / 1024.0f) * 5000.0f);
+}
+
+void toggleWave() {
+  unsigned long curr = millis();
+  if (digitalRead(buttonPin3) == HIGH && curr - waveLastTime >= 1000) {
+    waveLastTime = curr;
+    waveFormCounter++;
+    if (waveFormCounter > 3) { waveFormCounter = 0; }
+    switch(waveFormCounter) {
+      case 0:
+      currentWave = &aSin;
+      Serial.println("Sine wave");
+      break;
+      case 1:
+      currentWave = &aSaw;
+      Serial.println("Saw wave");
+      break;
+      case 2:
+      currentWave = &aTri;
+      Serial.println("Triangle Wave");
+      break;
+      case 3:
+      currentWave = &aSqu;
+      Serial.println("Square Wave");
+      break;
+    }
+  }
+}
+
+void ADSRButton(){
+  unsigned long curr = millis();
+  if(digitalRead(buttonPin1) == HIGH && curr - ADSRLastTime >= 1000){
+    ADSRLastTime = curr;
+    ADSRCycle++;
+    Serial.println("button pressed");
+  }
+  if(ADSRCycle >= 4){
+    ADSRCycle = 0;
+  }
 }
 //TODO: Filters - figure out if StateVariableFilter allows you to swap between filters then do the same as ADSR switching but swap filters and their effect
 //TODO: Pitch - just figure out potentiometers and update the frequency
@@ -87,19 +147,31 @@ void adsr() {
 //TODO: Modulation - figure out different effects we want to put basically and it'll follow the same framework as ADSR switching kinda
 
 void setup(){
-    randSeed();
-    startMozzi(); //DO NOT REMOVE, necessary for Mozzi library
-
+  currentWave->setFreq(440);
+  ADSRLastTime = millis();
+  waveLastTime = millis();
+  pinMode(buttonPin1, INPUT);
+  pinMode(buttonPin3, INPUT);
+  startMozzi(); //DO NOT REMOVE, necessary for Mozzi library
 }
 
 void updateControl(){
-
+  adsr();
 }
 
 AudioOutput_t updateAudio(){
-
+  envelope.update();
+  return MonoOutput::from8Bit(currentWave->next());
 }
 
 void loop(){
+  ADSRVal = analogRead(knobPin1);
+  ADSRnum = digitalRead(buttonPin1);
+  ADSRButton();
+
+
+  pitchControl = analogRead(knobPin3);
+  pitch();
+  toggleWave();
   audioHook(); //DO NOT REMOVE, necessary for Mozzi library
 }
