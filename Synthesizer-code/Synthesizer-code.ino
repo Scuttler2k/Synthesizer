@@ -11,6 +11,7 @@
 #include <EventDelay.h>
 #include <mozzi_rand.h>
 #include <mozzi_midi.h>
+#include <Smooth.h>
 
 
 //For ADSR control
@@ -30,25 +31,30 @@ int pitchControl = 0;
 const int knobPin4 = A3;
 const int buttonPin4 = 2; //cycle through effects
 
-Oscil <2048, MOZZI_AUDIO_RATE> aSin(SIN2048_DATA);//main oscillator
-Oscil <2048, MOZZI_AUDIO_RATE> aSaw(SAW2048_DATA);//main oscillator
-Oscil <2048, MOZZI_AUDIO_RATE> aTri(TRIANGLE2048_DATA);//main oscillator
-Oscil <2048, MOZZI_AUDIO_RATE> aSqu(SQUARE_NO_ALIAS_2048_DATA);//main oscillator
-Oscil <2048, MOZZI_AUDIO_RATE> *currentWave = &aSin;
+// track the different oscillators and the current one
+Oscil <2048, MOZZI_AUDIO_RATE> aSin(SIN2048_DATA);
+Oscil <2048, MOZZI_AUDIO_RATE> aSaw(SAW2048_DATA);
+Oscil <2048, MOZZI_AUDIO_RATE> aTri(TRIANGLE2048_DATA);
+Oscil <2048, MOZZI_AUDIO_RATE> aSqu(SQUARE_NO_ALIAS_2048_DATA);
+Oscil <2048, MOZZI_AUDIO_RATE> oscillators[4] = {aSin, aSaw, aTri, aSqu};
 int waveFormCounter = 0;
 
-Oscil <2048, MOZZI_AUDIO_RATE> lfoOsc(SIN2048_DATA);//used for effects, the ones to implement are vibrato, tremolo, ring modulation, and distortion
+Oscil <2048, MOZZI_AUDIO_RATE> lfoOsc(SIN2048_DATA); //used for effects, the ones to implement are vibrato, tremolo, ring modulation, and distortion
 
 // adsr
-ADSR <MOZZI_AUDIO_RATE, MOZZI_AUDIO_RATE> envelope;//ADSR envelope
+ADSR <MOZZI_AUDIO_RATE, MOZZI_AUDIO_RATE> envelope; //ADSR envelope
 EventDelay noteDelay;
 
-StateVariable<LOWPASS> LPFilter;
+StateVariable<NOTCH> LPFilter;
 StateVariable<HIGHPASS> HPFilter;
 StateVariable<BANDPASS> BPFilter;
 StateVariable<NOTCH> NFilter;
+int filterCounter = 0;
+int resonanceControl = 0;
 //Use .next() to choose a filter
 
+// smooth functions
+Smooth<float> smoothPitch(0.01f);
 
 float baseFreq = 440.0; //base frequency for the oscillator
 float lfoFreq = 440.0; //base frequency for LFO
@@ -59,48 +65,61 @@ uint8_t filterMode = 0;  // 0 - Low Pass, 1 - High Pass, 2 - State Variable
 // button timers
 unsigned long ADSRLastTime = 0;
 unsigned long waveLastTime = 0;
+unsigned long filterLastTime = 0;
 
-//TODO: ADSR - add a method for a case switch for the buttons and figure out how to code potentiometers
 void adsr() {
     if (noteDelay.ready()) {
         // choose envelope levels
+        int adsrValues[4] = {100, 100, 100, 100};
         int attack = 100;
         int decay = 100;
         int sustain = 100;
         int releaseMs = 100;
-        envelope.setADLevels(attack, decay);
+        envelope.setADLevels(adsrValues[0], adsrValues[1]);
 
+        // randomly choose one of the adsr parameters and set new value
         // generate random new adsr time parameter value in ms
         unsigned int newValue = (ADSRVal/1024.0)* 1500;
         Serial.print("New value:");
         Serial.println(newValue);
         Serial.print("ADSR: ");
         Serial.println(ADSRCycle);
-        // randomly choose one of the adsr parameters and set new value
-        switch (ADSRCycle) {
-            case 0:
-            attack = newValue;
-            break;
-            case 1:
-            decay = newValue;
-            break;
-            case 2:
-            sustain = newValue;
-            break;
-            case 3:
-            releaseMs= newValue;
-            break;
-        }
-        envelope.setTimes(attack, decay, sustain, releaseMs);
+        adsrValues[ADSRCycle] = newValue;
+
+        envelope.setTimes(adsrValues[0],adsrValues[1], adsrValues[2], adsrValues[3]);
         envelope.noteOn(false);
 
-        noteDelay.start(attack + decay + sustain + releaseMs);
+        noteDelay.start(adsrValues[0] + adsrValues[1] + adsrValues[2] + adsrValues[3]);
     }
 }
 
 void pitch(){
   Serial.println(pitchControl);
-  currentWave->setFreq((pitchControl / 1024.0f) * 5000.0f);
+  oscillators[waveFormCounter].setFreq((pitchControl / 1024.0f) * 5000.0f);
+}
+
+void filter(){
+  resonanceControl = (20+(resonanceControl/1024.0f)*4096);
+  Serial.println(filterCounter);
+  switch (filterCounter) {
+    case 0:
+      LPFilter.setResonance(220);
+      LPFilter.setCentreFreq(resonanceControl);
+      break;
+    case 1:
+      HPFilter.setResonance(220);
+      HPFilter.setCentreFreq(resonanceControl);
+      break;
+    case 2:
+      BPFilter.setResonance(220);
+      BPFilter.setCentreFreq(resonanceControl);
+      break;
+    case 3:
+      NFilter.setResonance(220);
+      NFilter.setCentreFreq(resonanceControl);
+      break;
+  }
+
 }
 
 void toggleWave() {
@@ -109,24 +128,15 @@ void toggleWave() {
     waveLastTime = curr;
     waveFormCounter++;
     if (waveFormCounter > 3) { waveFormCounter = 0; }
-    switch(waveFormCounter) {
-      case 0:
-      currentWave = &aSin;
-      Serial.println("Sine wave");
-      break;
-      case 1:
-      currentWave = &aSaw;
-      Serial.println("Saw wave");
-      break;
-      case 2:
-      currentWave = &aTri;
-      Serial.println("Triangle Wave");
-      break;
-      case 3:
-      currentWave = &aSqu;
-      Serial.println("Square Wave");
-      break;
-    }
+  }
+}
+
+void toggleFilter() {
+  unsigned long curr = millis();
+  if (digitalRead(buttonPin2) == HIGH && curr - filterLastTime >= 1000) {
+    filterLastTime = curr;
+    filterCounter++;
+    if (filterCounter > 3) { filterCounter = 0; }
   }
 }
 
@@ -141,13 +151,10 @@ void ADSRButton(){
     ADSRCycle = 0;
   }
 }
-//TODO: Filters - figure out if StateVariableFilter allows you to swap between filters then do the same as ADSR switching but swap filters and their effect
-//TODO: Pitch - just figure out potentiometers and update the frequency
-//TODO: Wave selector - figure out what each wave table does and then connect it with the button to change between different waves
 //TODO: Modulation - figure out different effects we want to put basically and it'll follow the same framework as ADSR switching kinda
 
 void setup(){
-  currentWave->setFreq(440);
+  oscillators[waveFormCounter].setFreq(440);
   ADSRLastTime = millis();
   waveLastTime = millis();
   pinMode(buttonPin1, INPUT);
@@ -161,7 +168,16 @@ void updateControl(){
 
 AudioOutput_t updateAudio(){
   envelope.update();
-  return MonoOutput::from8Bit(currentWave->next());
+  switch (filterCounter) {
+    case 0:
+  return MonoOutput::fromAlmostNBit(9, LPFilter.next(oscillators[waveFormCounter].next()));
+    case 1:
+  return MonoOutput::fromAlmostNBit(9, HPFilter.next(oscillators[waveFormCounter].next()));
+    case 2:
+  return MonoOutput::fromAlmostNBit(9, BPFilter.next(oscillators[waveFormCounter].next()));
+    case 3:
+  return MonoOutput::fromAlmostNBit(9, NFilter.next(oscillators[waveFormCounter].next()));
+  }
 }
 
 void loop(){
@@ -171,7 +187,13 @@ void loop(){
 
 
   pitchControl = analogRead(knobPin3);
+  pitchControl = smoothPitch.next((float) pitchControl);
   pitch();
   toggleWave();
+  
+  resonanceControl = analogRead(knobPin2);
+  filter();
+  toggleFilter();
+
   audioHook(); //DO NOT REMOVE, necessary for Mozzi library
 }
