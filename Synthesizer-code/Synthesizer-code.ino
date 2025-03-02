@@ -39,7 +39,10 @@ Oscil <2048, MOZZI_AUDIO_RATE> aSqu(SQUARE_NO_ALIAS_2048_DATA);
 Oscil <2048, MOZZI_AUDIO_RATE> oscillators[4] = {aSin, aSaw, aTri, aSqu};
 int waveFormCounter = 0;
 
-Oscil <2048, MOZZI_AUDIO_RATE> lfoOsc(SIN2048_DATA); //used for effects, the ones to implement are vibrato, tremolo, ring modulation, and distortion
+Oscil <2048, MOZZI_AUDIO_RATE> vibratoLFO(SIN2048_DATA); //used for effects, the ones to implement are vibrato, tremolo, ring modulation, and distortion
+Oscil <2048, MOZZI_AUDIO_RATE> modLFO(SIN2048_DATA);
+int modCounter = 0;// 0 - nothing, 1 - Tremolo, 2 - Vibrato, 3 - Distortion, 4 - Ring modulation
+int modStr = 0;
 
 // adsr
 ADSR <MOZZI_AUDIO_RATE, MOZZI_AUDIO_RATE> envelope; //ADSR envelope
@@ -66,6 +69,7 @@ uint8_t filterMode = 0;  // 0 - Low Pass, 1 - High Pass, 2 - State Variable
 unsigned long ADSRLastTime = 0;
 unsigned long waveLastTime = 0;
 unsigned long filterLastTime = 0;
+unsigned long modLastTime = 0;
 
 void adsr() {
     if (noteDelay.ready()) {
@@ -122,6 +126,25 @@ void filter(){
 
 }
 
+void modulation()){
+  modStr = (modStr/1023.0f);
+  switch(modCounter){
+    case 0:
+      break;
+    case 1:
+      break;
+    case 2:
+
+      break;
+    case 3:
+
+      break;
+    case 4:
+
+      break;
+  }
+}
+
 void toggleWave() {
   unsigned long curr = millis();
   if (digitalRead(buttonPin3) == HIGH && curr - waveLastTime >= 1000) {
@@ -152,6 +175,18 @@ void ADSRButton(){
   }
 }
 //TODO: Modulation - figure out different effects we want to put basically and it'll follow the same framework as ADSR switching kinda
+
+void ModulationButton(){
+  unsigned long curr = millis();
+  if(digitalRead(buttonPin4) == HIGH && curr - modLastTime >= 1000){
+    modLastTime = curr;
+    modCounter++;
+    Serial.println("button pressed");
+  }
+  if(modCounter > 4){
+    modCounter = 0;
+  }
+}
 
 void setup(){
   oscillators[waveFormCounter].setFreq(440);
@@ -194,6 +229,10 @@ void loop(){
   resonanceControl = analogRead(knobPin2);
   filter();
   toggleFilter();
+
+  modStr = analogRead(knobPin4);
+
+
 
   audioHook(); //DO NOT REMOVE, necessary for Mozzi library
 }
