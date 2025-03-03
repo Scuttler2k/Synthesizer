@@ -13,6 +13,8 @@
 #include <mozzi_midi.h>
 #include <Smooth.h>
 
+#include <Phasor.h>
+
 
 //For ADSR control
 const int knobPin1 = A0;
@@ -43,6 +45,16 @@ Oscil <2048, MOZZI_AUDIO_RATE> vibratoLFO(SIN2048_DATA); //used for effects, the
 Oscil <2048, MOZZI_AUDIO_RATE> modLFO(SIN2048_DATA);
 int modCounter = 0;// 0 - nothing, 1 - Tremolo, 2 - Vibrato, 3 - Distortion, 4 - Ring modulation
 int modStr = 0;
+// a line to interpolate control tremolo at audio rate
+Line <unsigned int> aGain;
+// Oscillators at different frequencies for ring modulation
+Oscil <2048, MOZZI_AUDIO_RATE> ringOscillators[4] = {
+  Oscil <2048, MOZZI_AUDIO_RATE> (SIN2048_DATA),
+  Oscil <2048, MOZZI_AUDIO_RATE> (SAW2048_DATA),
+  Oscil <2048, MOZZI_AUDIO_RATE> (TRIANGLE2048_DATA),
+  Oscil <2048, MOZZI_AUDIO_RATE> (SQUARE_NO_ALIAS_2048_DATA),
+};
+Phasor<MOZZI_AUDIO_RATE> distortionPhaser;
 
 // adsr
 ADSR <MOZZI_AUDIO_RATE, MOZZI_AUDIO_RATE> envelope; //ADSR envelope
@@ -126,21 +138,26 @@ void filter(){
 
 }
 
-void modulation()){
-  modStr = (modStr/1023.0f);
+void modulation() {
+  float normalized = modStr / 1024.0f;
   switch(modCounter){
     case 0:
       break;
-    case 1:
+    case 1: // tremolo
+      // GENERAL EQUATION: D * signal + 1 where D is depth (decibels)
+      // TODO: equivalent to doing (128 + signal) * 256. Now figure out if we want to control tremolo amplitude or frequency using the knob.
+      unsigned int gain = (128u + vibratoLFO.next()) << 8;
+      aGain.set(gain, MOZZI_AUDIO_RATE / MOZZI_CONTROL_RATE);
       break;
-    case 2:
-
+    case 2: // vibrato
+      vibratoLFO.setFreq(normalized * 256);  // TODO: again play around with max freq 256 for vibrato modulation
       break;
-    case 3:
-
+    case 3: // distortion
+      distortionPhasor.setFreq(normalized * 256);  // TODO: play around with the max freq 256
       break;
-    case 4:
-
+    case 4: // ring modulation
+      // TODO: play with max freq 5000, the pitch modulation we currently have is also 5000
+      ringOscillators[waveFormCounter].setFreq(normalized * 5000);
       break;
   }
 }
@@ -203,16 +220,42 @@ void updateControl(){
 
 AudioOutput_t updateAudio(){
   envelope.update();
+
+  int8_t oscil_sample = oscillators[waveFormCounter].next();
+
+  // mod calculations
+  int s = oscil_sample;
+  switch (modCounter) {
+    // ignore 0
+    case 1:
+      // WARN: might be some isses with fromAlmostNBit(9, ...), docs use 24
+      s = (int32_t) s * aGain.next();
+      break;
+    case 2:
+      auto vibrato = 0.5 * toSFraction(vibratoLFO.next());
+      s = (int32_t) oscillators[waveFormCounter].phMod(vibrato);
+      break;
+    case 3:
+      s = s - distortionPhasor.next(); // TODO: maybe 2 phasors for more effect. Example uses 2
+      break;
+    case 4:
+      s = s * ringOscillators[waveFormCounter].next(); // TODO: phase shift ?
+      break;
+  }
+
+  int nextSample = 0;
+  // filter calculations
   switch (filterCounter) {
     case 0:
-  return MonoOutput::fromAlmostNBit(9, LPFilter.next(oscillators[waveFormCounter].next()));
+      nextSample = LPFilter.next(s);
     case 1:
-  return MonoOutput::fromAlmostNBit(9, HPFilter.next(oscillators[waveFormCounter].next()));
+      nextSample = HPFilter.next(s);
     case 2:
-  return MonoOutput::fromAlmostNBit(9, BPFilter.next(oscillators[waveFormCounter].next()));
+      nextSample = BPFilter.next(s);
     case 3:
-  return MonoOutput::fromAlmostNBit(9, NFilter.next(oscillators[waveFormCounter].next()));
+      nextSample = NFilter.next(s);
   }
+  return MonoOutput::fromAlmostNBit(9, nextSample);
 }
 
 void loop(){
@@ -231,6 +274,7 @@ void loop(){
   toggleFilter();
 
   modStr = analogRead(knobPin4);
+  modulation();
 
 
 
