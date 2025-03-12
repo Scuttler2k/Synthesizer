@@ -6,6 +6,7 @@
 #include <tables/saw2048_int8.h>
 #include <tables/triangle2048_int8.h>
 #include <tables/square_no_alias_2048_int8.h> //these four tables are for the wave switching, figure out how to do a square wave
+#include <tables/cos2048_int8.h>
 #include <StateVariable.h> //figure out this one with filter switching
 #include <ADSR.h>
 #include <EventDelay.h>
@@ -41,6 +42,7 @@ Oscil <2048, MOZZI_AUDIO_RATE> aSqu(SQUARE_NO_ALIAS_2048_DATA);
 Oscil <2048, MOZZI_AUDIO_RATE> oscillators[4] = {aSin, aSaw, aTri, aSqu};
 int waveFormCounter = 0;
 
+Oscil <2048, MOZZI_AUDIO_RATE> tremoloLFO(SIN2048_DATA);
 Oscil <2048, MOZZI_AUDIO_RATE> vibratoLFO(SIN2048_DATA); //used for effects, the ones to implement are vibrato, tremolo, ring modulation, and distortion
 Oscil <2048, MOZZI_AUDIO_RATE> modLFO(SIN2048_DATA);
 int modCounter = 0;// 0 - nothing, 1 - Tremolo, 2 - Vibrato, 3 - Distortion, 4 - Ring modulation
@@ -49,12 +51,14 @@ int modStr = 0;
 Line <unsigned int> aGain;
 // Oscillators at different frequencies for ring modulation
 Oscil <2048, MOZZI_AUDIO_RATE> ringOscillators[4] = {
-  Oscil <2048, MOZZI_AUDIO_RATE> (SIN2048_DATA),
+  Oscil <2048, MOZZI_AUDIO_RATE> (COS2048_DATA),
   Oscil <2048, MOZZI_AUDIO_RATE> (SAW2048_DATA),
   Oscil <2048, MOZZI_AUDIO_RATE> (TRIANGLE2048_DATA),
   Oscil <2048, MOZZI_AUDIO_RATE> (SQUARE_NO_ALIAS_2048_DATA),
 };
-Phasor<MOZZI_AUDIO_RATE> distortionPhaser;
+
+//Phasor<MOZZI_AUDIO_RATE> distortionPhasor;
+Oscil <2048, MOZZI_AUDIO_RATE> distortionPhasor(SQUARE_NO_ALIAS_2048_DATA);
 
 // adsr
 ADSR <MOZZI_AUDIO_RATE, MOZZI_AUDIO_RATE> envelope; //ADSR envelope
@@ -96,10 +100,6 @@ void adsr() {
         // randomly choose one of the adsr parameters and set new value
         // generate random new adsr time parameter value in ms
         unsigned int newValue = (ADSRVal/1024.0)* 1500;
-        Serial.print("New value:");
-        Serial.println(newValue);
-        Serial.print("ADSR: ");
-        Serial.println(ADSRCycle);
         adsrValues[ADSRCycle] = newValue;
 
         envelope.setTimes(adsrValues[0],adsrValues[1], adsrValues[2], adsrValues[3]);
@@ -110,13 +110,11 @@ void adsr() {
 }
 
 void pitch(){
-  Serial.println(pitchControl);
   oscillators[waveFormCounter].setFreq((pitchControl / 1024.0f) * 5000.0f);
 }
 
 void filter(){
-  resonanceControl = (20+(resonanceControl/1024.0f)*4096);
-  Serial.println(filterCounter);
+  resonanceControl = ((resonanceControl/1024.0f)*3800);
   switch (filterCounter) {
     case 0:
       LPFilter.setResonance(220);
@@ -139,25 +137,31 @@ void filter(){
 }
 
 void modulation() {
-  float normalized = modStr / 1024.0f;
+  float normalized = (modStr / 1024.0f);
+  
   switch(modCounter){
     case 0:
       break;
     case 1: // tremolo
       // GENERAL EQUATION: D * signal + 1 where D is depth (decibels)
       // TODO: equivalent to doing (128 + signal) * 256. Now figure out if we want to control tremolo amplitude or frequency using the knob.
-      unsigned int gain = (128u + vibratoLFO.next()) << 8;
+      unsigned int gain = (128.0f + tremoloLFO.next())*(normalized*256);
       aGain.set(gain, MOZZI_AUDIO_RATE / MOZZI_CONTROL_RATE);
+      Serial.println("Tremolo");
       break;
     case 2: // vibrato
-      vibratoLFO.setFreq(normalized * 256);  // TODO: again play around with max freq 256 for vibrato modulation
+      //vibratoLFO.setFreq(normalized * 5);  // TODO: again play around with max freq 256 for vibrato modulation
+      vibratoLFO.setFreq(15);  // TODO: again play around with max freq 256 for vibrato modulation
+      Serial.println("Vibrato");
       break;
     case 3: // distortion
-      distortionPhasor.setFreq(normalized * 256);  // TODO: play around with the max freq 256
+      distortionPhasor.setFreq(normalized * 10000.0f);  // TODO: play around with the max freq 256
+      Serial.println("Distortion");
       break;
     case 4: // ring modulation
       // TODO: play with max freq 5000, the pitch modulation we currently have is also 5000
-      ringOscillators[waveFormCounter].setFreq(normalized * 5000);
+      ringOscillators[waveFormCounter].setFreq(normalized * 10000.0f);
+      Serial.println("Ring");
       break;
   }
 }
@@ -185,7 +189,6 @@ void ADSRButton(){
   if(digitalRead(buttonPin1) == HIGH && curr - ADSRLastTime >= 1000){
     ADSRLastTime = curr;
     ADSRCycle++;
-    Serial.println("button pressed");
   }
   if(ADSRCycle >= 4){
     ADSRCycle = 0;
@@ -198,7 +201,6 @@ void ModulationButton(){
   if(digitalRead(buttonPin4) == HIGH && curr - modLastTime >= 1000){
     modLastTime = curr;
     modCounter++;
-    Serial.println("button pressed");
   }
   if(modCounter > 4){
     modCounter = 0;
@@ -206,16 +208,19 @@ void ModulationButton(){
 }
 
 void setup(){
+  Serial.begin(4800);
   oscillators[waveFormCounter].setFreq(440);
   ADSRLastTime = millis();
   waveLastTime = millis();
   pinMode(buttonPin1, INPUT);
   pinMode(buttonPin3, INPUT);
   startMozzi(); //DO NOT REMOVE, necessary for Mozzi library
+  tremoloLFO.setFreq(1.0f);
 }
 
 void updateControl(){
   adsr();
+  modulation();
 }
 
 AudioOutput_t updateAudio(){
@@ -232,29 +237,40 @@ AudioOutput_t updateAudio(){
       s = (int32_t) s * aGain.next();
       break;
     case 2:
-      auto vibrato = 0.5 * toSFraction(vibratoLFO.next());
+      //auto vibrato = 0.5 * toSFraction(vibratoLFO.next());
+
+      /*float normalized = (modStr / 1024.0f);
+      float depthFactor = normalized*0.1f;*/
+      auto vibrato = UFix<0,8>(0.5) * toSFraction(vibratoLFO.next());
+
       s = (int32_t) oscillators[waveFormCounter].phMod(vibrato);
       break;
     case 3:
-      s = s - distortionPhasor.next(); // TODO: maybe 2 phasors for more effect. Example uses 2
+      s = distortionPhasor.next(); // TODO: maybe 2 phasors for more effect. Example uses 2  
       break;
     case 4:
-      s = s * ringOscillators[waveFormCounter].next(); // TODO: phase shift ?
+      s = s * ringOscillators[waveFormCounter].next() * 2; // TODO: phase shift ?
+      Serial.begin("ring");
       break;
   }
 
   int nextSample = 0;
   // filter calculations
-  switch (filterCounter) {
-    case 0:
-      nextSample = LPFilter.next(s);
-    case 1:
-      nextSample = HPFilter.next(s);
-    case 2:
-      nextSample = BPFilter.next(s);
-    case 3:
-      nextSample = NFilter.next(s);
-  }
+switch (filterCounter) {
+  case 0:
+    nextSample = LPFilter.next(s);
+    break;
+  case 1:
+    nextSample = HPFilter.next(s);
+    break;
+  case 2:
+    nextSample = BPFilter.next(s);
+    break;
+  case 3:
+    nextSample = NFilter.next(s);
+    break;
+}
+
   return MonoOutput::fromAlmostNBit(9, nextSample);
 }
 
@@ -274,7 +290,7 @@ void loop(){
   toggleFilter();
 
   modStr = analogRead(knobPin4);
-  modulation();
+  ModulationButton();
 
 
 
